@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Cliente extends Model
 {
+    use SoftDeletes;
+
     public const TIPO_VISITANTE = 'visitante';
 
     public const TIPO_ABONADO = 'abonado';
@@ -47,3 +50,4 @@ class Cliente extends Model
             && $this->fecha_proximo_pago->greaterThanOrEqualTo(today());
     }
 }
+

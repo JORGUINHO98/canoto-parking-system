@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Support\ParkingHours;
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Paginator::defaultView('vendor.pagination.bootstrap-5');
+        Paginator::defaultSimpleView('vendor.pagination.simple-bootstrap-5');
+
+        View::composer('*', function (\Illuminate\View\View $view): void {
+            $view->with([
+                'parkingOpen' => ParkingHours::isOpenForIngresso(),
+                'parkingHoursLabel' => ParkingHours::label(),
+            ]);
+        });
     }
 }

@@ -20,6 +20,12 @@ Servidor de desarrollo: `php artisan serve`. Rutas principales:
 - Búsqueda: `POST /parking/buscar`
 - Registrar ingreso: `POST /parking/ingreso`
 - Salida / ticket: `GET|POST /parking/salida`
+- Clientes (CRUD): `GET /parking/clientes`, etc.
+- Vehículos (CRUD): `GET /parking/vehiculos`, etc.
+
+## Horario de operación (ingresos)
+
+El **registro de ingreso** de vehículos solo se permite entre **07:00 y 23:59** (hora de `config('app.timezone')`). Fuera de ese rango se puede **buscar** en el panel, pero no confirmar entrada. La **salida** y el **ticket** pueden procesarse en cualquier momento (vehículos que siguen dentro). Lógica en `App\Support\ParkingHours` y validación en `ParkingController::store`.
 
 ## Tipos de cliente y tarifas
 
@@ -64,13 +70,22 @@ Dentro de los pisos **2–5**, el piso concreto se calcula de forma **determinis
 - **`vehiculos`:** `cliente_id`, `placa` (única), `marca`, `modelo`, `color`.
 - **`ingresos`:** sesión de parqueo: `entrada_at`, `salida_at`, `piso`, `tipo_registrado`, `tipo_efectivo`, `abono_vencido_tratado_como_visitante`, `total_bs`.
 
+## Catálogo (clientes y vehículos)
+
+- **Clientes:** alta, edición y eliminación desde `/parking/clientes`. No se elimina un cliente si aún tiene vehículos vinculados.
+- **Vehículos:** alta, edición y eliminación desde `/parking/vehiculos`. No se elimina si hay **ingreso activo** o **cualquier historial** de ingresos asociado al vehículo.
+
+Controladores: `ClienteController`, `VehiculoController`. Normalización de placa: `App\Support\Placa`.
+
 ## Interfaz
 
-El módulo usa **Bootstrap 5** (CDN) en las vistas bajo `layouts/parking.blade.php`: barra superior, **sidebar** colapsable en móvil (offcanvas), formulario de búsqueda en `card`, resultados en **tabla responsive** (escritorio) y **cards** en pantallas pequeñas.
+**Bootstrap 5**, **Bootstrap Icons** y tipografías **Outfit** / **IBM Plex Sans** (Google Fonts). Layout en `layouts/parking.blade.php`: barra clara con estado de horario, **sidebar** oscuro en escritorio, offcanvas en móvil, tarjetas `park-card`, tablas compactas y paginación Bootstrap 5 (`Paginator::defaultView`).
 
 ## Archivos relevantes
 
 - `routes/web.php` — rutas del módulo.
 - `app/Http/Controllers/ParkingController.php` — `ingreso`, `search`, `store`.
 - `app/Http/Controllers/TicketController.php` — `salida`, `procesarSalida`.
-- `resources/views/parking/ingreso.blade.php`, `salida.blade.php`.
+- `app/Http/Controllers/ClienteController.php`, `VehiculoController.php` — CRUD.
+- `app/Support/ParkingHours.php`, `Placa.php`.
+- `resources/views/parking/*`, `resources/views/catalog/*`.
