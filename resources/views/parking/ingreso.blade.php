@@ -154,8 +154,8 @@
                     <div class="card park-card h-100 border-top border-4 border-primary" style="border-top-color: #0369a1 !important;">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="text-secondary small">Piso sugerido</span>
-                                <span class="badge rounded-pill bg-dark fs-6">{{ $row['piso_asignado'] }}º</span>
+                                <span class="text-secondary small">Espacio sugerido</span>
+                                <span class="badge rounded-pill bg-dark fs-6">{{ $row['piso_asignado'] ? 'Piso '.$row['piso_asignado'].' - Esp. '.$row['espacio_asignado'] : 'LLENO' }}</span>
                             </div>
                             <h3 class="h5 font-monospace mb-2">{{ $row['placa'] }}</h3>
                             <p class="mb-1 small"><strong>Cliente:</strong> {{ $row['cliente_nombre'] }}</p>
@@ -216,7 +216,7 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
-                                <td><span class="badge rounded-pill bg-dark">{{ $row['piso_asignado'] }}º</span></td>
+                                <td><span class="badge rounded-pill bg-dark">{{ $row['piso_asignado'] ? 'Piso '.$row['piso_asignado'].' - Esp. '.$row['espacio_asignado'] : 'Lleno' }}</span></td>
                                 <td class="small">
                                     @if ($row['abono_vencido'])
                                         <span class="badge text-bg-danger">Vencido</span>
@@ -250,7 +250,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between">
                             <h3 class="h6 font-monospace mb-1">{{ $row['placa'] }}</h3>
-                            <span class="badge rounded-pill bg-dark">{{ $row['piso_asignado'] }}º</span>
+                            <span class="badge rounded-pill bg-dark">{{ $row['piso_asignado'] ? 'Piso '.$row['piso_asignado'].' - Esp. '.$row['espacio_asignado'] : 'Lleno' }}</span>
                         </div>
                         <p class="small mb-1">{{ $row['cliente_nombre'] }}</p>
                         <p class="small text-secondary mb-2">{{ $row['marca'] ?? '—' }} {{ $row['modelo'] ?? '' }} · {{ $row['color'] ?? '—' }}</p>

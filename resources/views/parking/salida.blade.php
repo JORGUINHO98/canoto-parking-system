@@ -3,6 +3,41 @@
 @section('title', 'Salida y ticket')
 
 @section('content')
+    <style>
+        @media print {
+            /* Ocultar elementos de navegación y alertas que no van en el papel */
+            header, footer, nav, aside, .navbar, .sidebar, 
+            .alert, .card-footer, .row.mb-4:first-of-type {
+                display: none !important;
+            }
+            
+            body {
+                background-color: transparent !important;
+                margin: 0;
+                padding: 0;
+            }
+
+            /* Contenedor principal ajustado a ticketera de 80mm */
+            .park-card.border-success {
+                width: 100% !important;
+                max-width: 80mm !important;
+                border: none !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+
+            /* Forzar blanco y negro, sin fondos */
+            .card-header {
+                background: transparent !important;
+                color: #000 !important;
+                border-bottom: 2px dashed #000 !important;
+            }
+
+            .park-card * {
+                color: #000 !important;
+            }
+        }
+    </style>
     <div class="row mb-4">
         <div class="col-lg-8">
             <h1 class="h3 park-display mb-1">Salida y facturación</h1>
@@ -35,6 +70,12 @@
     @else
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-5">
+                @if(isset($alertaVencimiento))
+                    <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+                        <strong>⚠️ Recordatorio:</strong> Al cliente le quedan {{ $alertaVencimiento }} día(s) de contrato. Por favor, ofrezca la renovación.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
                 <div class="card park-card border-success border-2">
                     <div class="card-header text-white fw-semibold d-flex align-items-center gap-2" style="background: linear-gradient(135deg,#059669,#10b981);">
                         <i class="bi bi-check-circle-fill"></i>
@@ -66,6 +107,9 @@
                     </div>
                     <div class="card-footer bg-white border-top-0">
                         <a href="{{ route('parking.salida') }}" class="btn btn-outline-primary rounded-pill">Nueva salida</a>
+                        <button type="button" class="btn btn-primary rounded-pill ms-2" onclick="window.print()">
+                            🖨️ Imprimir Ticket
+                        </button>
                     </div>
                 </div>
             </div>

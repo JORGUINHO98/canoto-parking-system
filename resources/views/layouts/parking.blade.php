@@ -184,10 +184,6 @@
         </main>
     </div>
 
-    <footer class="py-3 px-4 text-center small text-muted border-top bg-white">
-        Cañoto Parking · Horario de ingreso de vehículos: <strong>{{ $parkingHoursLabel ?? '07:00 — 23:59' }}</strong> (hora {{ config('app.timezone') }})
-    </footer>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     @stack('scripts')
 </body>

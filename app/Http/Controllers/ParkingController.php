@@ -7,6 +7,7 @@ use App\Models\Ingreso;
 use App\Models\Vehiculo;
 use App\Support\ParkingHours;
 use App\Support\Placa;
+use App\Services\ParkingSpotService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -87,7 +88,6 @@ class ParkingController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // Corregido: Eliminados caracteres \n y arreglada la estructura
         if (! ParkingHours::isOpenForIngresso()) {
             return back()->withErrors([
                 'horario' => ParkingHours::closedMessage(),
@@ -147,7 +147,6 @@ class ParkingController extends Controller
             $cliente = $vehiculo->cliente;
         }
 
-        // Corregido: Arreglado el cierre del if y el return
         if ($vehiculo->ingresoActivo() !== null) {
             return back()->withErrors([
                 'ingreso' => 'Este vehículo ya tiene un ingreso activo. Procese la salida primero.',
@@ -155,13 +154,32 @@ class ParkingController extends Controller
         }
 
         [$tipoEfectivo, $vencido] = $this->resolverTipoEfectivo($cliente);
-        $piso = $this->asignarPiso($tipoEfectivo, $vehiculo->placa);
+
+        $spotService = new ParkingSpotService();
+        $asignacion = $spotService->calcularEspacioDisponible($tipoEfectivo);
+
+        if (
+            $asignacion === null ||
+            !isset($asignacion['piso']) ||
+            !isset($asignacion['espacio']) ||
+            !is_int($asignacion['piso']) ||
+            !is_int($asignacion['espacio']) ||
+            $asignacion['piso'] < 1 ||
+            $asignacion['piso'] > ParkingSpotService::PISOS_TOTALES ||
+            $asignacion['espacio'] < 1 ||
+            $asignacion['espacio'] > ParkingSpotService::ESPACIOS_POR_PISO
+        ) {
+            return back()->withErrors([
+                'ingreso' => 'El parqueo se encuentra lleno o se produjo un error al asignar el espacio. Intente de nuevo.',
+            ])->withInput();
+        }
 
         Ingreso::create([
             'vehiculo_id' => $vehiculo->id,
             'cliente_id' => $cliente->id,
-            'piso' => $piso,
-            'entrada_at' => now(), // Usa America/La_Paz según tu config
+            'piso' => $asignacion['piso'],
+            'espacio' => $asignacion['espacio'],
+            'entrada_at' => now(), 
             'tipo_registrado' => $cliente->tipo_cliente,
             'tipo_efectivo' => $tipoEfectivo,
             'abono_vencido_tratado_como_visitante' => $vencido,
@@ -170,7 +188,7 @@ class ParkingController extends Controller
 
         return redirect()
             ->route('parking.ingreso')
-            ->with('status', 'Ingreso registrado. Piso asignado: '.$piso.'.');
+            ->with('status', 'Ingreso registrado. Asignado Piso: ' . $asignacion['piso'] . ' - Espacio: ' . $asignacion['espacio'] . '.');
     }
 
     private function buscarVehiculos(?string $placaNorm, ?string $nombre): Collection
@@ -194,7 +212,19 @@ class ParkingController extends Controller
     {
         $cliente = $v->cliente;
         [$tipoEfectivo, $vencido] = $this->resolverTipoEfectivo($cliente);
-        $piso = $this->asignarPiso($tipoEfectivo, $v->placa);
+
+        $spotService = new ParkingSpotService();
+        $asignacion = $spotService->calcularEspacioDisponible($tipoEfectivo);
+
+        $diasParaVencer = null;
+        $mostrarAlertaRenovacion = false;
+        
+        if ($cliente->fecha_proximo_pago && in_array($cliente->tipo_cliente, [Cliente::TIPO_ABONADO, Cliente::TIPO_ABONADO_VIP], true)) {
+            $fechaProximoPago = \Carbon\Carbon::parse($cliente->fecha_proximo_pago, 'America/La_Paz')->startOfDay();
+            $hoy = now('America/La_Paz')->startOfDay();
+            $diasParaVencer = (int) $hoy->diffInDays($fechaProximoPago, false);
+            $mostrarAlertaRenovacion = $diasParaVencer >= 0 && $diasParaVencer <= 2;
+        }
 
         return [
             'vehiculo_id' => $v->id,
@@ -207,11 +237,14 @@ class ParkingController extends Controller
             'tipo_efectivo' => $tipoEfectivo,
             'pago_al_dia' => $cliente->isAbonadoActivo(),
             'fecha_proximo_pago' => $cliente->fecha_proximo_pago,
-            'piso_asignado' => $piso,
+            'piso_asignado' => $asignacion['piso'] ?? null,
+            'espacio_asignado' => $asignacion['espacio'] ?? null,
             'abono_vencido' => $vencido,
             'alerta_visitante_recurrente' => $tipoEfectivo === Cliente::TIPO_VISITANTE
                 && $this->esVisitanteRecurrente($cliente),
             'ingreso_activo' => $v->ingresoActivo(),
+            'dias_para_vencer' => $diasParaVencer,
+            'mostrar_alerta_renovacion' => $mostrarAlertaRenovacion,
         ];
     }
 
@@ -241,15 +274,5 @@ class ParkingController extends Controller
             ->where('tipo_efectivo', Cliente::TIPO_VISITANTE)
             ->whereNotNull('salida_at')
             ->exists();
-    }
-
-    private function asignarPiso(string $tipoEfectivo, string $placa): int
-    {
-        if ($tipoEfectivo === Cliente::TIPO_ABONADO_VIP) {
-            return 1;
-        }
-
-        $hash = crc32($placa);
-        return 2 + ($hash % 4);
     }
 }

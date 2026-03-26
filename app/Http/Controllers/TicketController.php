@@ -7,6 +7,7 @@ use App\Models\Ingreso;
 use App\Models\Vehiculo;
 use App\Support\Placa;
 use Carbon\CarbonInterface;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -67,11 +68,23 @@ class TicketController extends Controller
             ? null
             : $this->horasCobradasVisitante($ingreso->entrada_at, $ingreso->salida_at);
 
+        $alertaVencimiento = null;
+        if ($ingreso->cliente->fecha_proximo_pago && in_array($ingreso->cliente->tipo_cliente, [Cliente::TIPO_ABONADO, Cliente::TIPO_ABONADO_VIP], true)) {
+            $fechaProximoPago = Carbon::parse($ingreso->cliente->fecha_proximo_pago, 'America/La_Paz')->startOfDay();
+            $hoy = Carbon::now('America/La_Paz')->startOfDay();
+            $diasRestantes = (int) $hoy->diffInDays($fechaProximoPago, false);
+            
+            if ($diasRestantes >= 0 && $diasRestantes <= 2) {
+                $alertaVencimiento = $diasRestantes;
+            }
+        }
+
         return view('parking.salida', [
             'ticket' => $ingreso->fresh(['vehiculo', 'cliente']),
             'total_bs' => $total,
             'horas_cobradas' => $horasCobradas,
             'es_autorizacion_sin_cobro' => $esSinCobro,
+            'alertaVencimiento' => $alertaVencimiento,
         ]);
     }
 
